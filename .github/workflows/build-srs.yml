@@ -36,10 +36,6 @@ jobs:
         run: |
           ./sing-box/sing-box rule-set compile AWAvenue-Ads-Rule-Singbox.json
 
-      - name: Move SRS to repo root
-        run: |
-          mv AWAvenue-Ads-Rule-Singbox.srs ./AWAvenue-Ads-Rule-Singbox.srs
-
       - name: Commit and push SRS file
         run: |
           git config user.name "github-actions[bot]"
