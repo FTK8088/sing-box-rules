@@ -31,23 +31,23 @@ jobs:
       - name: Download AWAvenue rule JSON and Compile to SRS
         run: |
           curl -L -o AWAvenue-Ads-Rule-Singbox.json https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Singbox.json
-          ./sing-box/sing-box rule-set compile AWAvenue-Ads-Rule-Singbox.json
+          ./sing-box/sing-box rule-set compile --output AWAvenue-Ads-Rule-Singbox.srs AWAvenue-Ads-Rule-Singbox.json
 
       - name: Change BBC Rules and Compile to SRS
         run: |
           curl -L -o bbc.json https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/sing/geo/geosite/bbc.json
           python3 add_rules.py
-          ./sing-box/sing-box rule-set compile bbc.json
+          ./sing-box/sing-box rule-set compile --output bbc.srs bbc.json
 
-      - name: Commit and push SRS file
+      - name: Commit and push SRS files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           # 检查文件是否变化，避免空提交
-          if [ -n "$(git status --porcelain AWAvenue-Ads-Rule-Singbox.srs)" ]; then
+          if [ -n "$(git status --porcelain AWAvenue-Ads-Rule-Singbox.srs bbc.srs)" ]; then
             git add AWAvenue-Ads-Rule-Singbox.srs bbc.srs
-            git commit -m "Auto update AWAvenue SRS $(date -u '+%Y-%m-%d %H:%M:%S')"
+            git commit -m "Auto update SRS files $(date -u '+%Y-%m-%d %H:%M:%S')"
             git push
           else
             echo "No changes detected, skipping commit."
