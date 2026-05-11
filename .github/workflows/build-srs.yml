@@ -28,13 +28,16 @@ jobs:
           mv sing-box-* sing-box
           chmod +x sing-box/sing-box
 
-      - name: Download AWAvenue rule JSON
+      - name: Download AWAvenue rule JSON and Compile to SRS
         run: |
           curl -L -o AWAvenue-Ads-Rule-Singbox.json https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Singbox.json
-
-      - name: Compile to SRS
-        run: |
           ./sing-box/sing-box rule-set compile AWAvenue-Ads-Rule-Singbox.json
+
+      - name: Change BBC Rules and Compile to SRS
+        run: |
+          curl -L -o bbc.json https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/sing/geo/geosite/bbc.json
+          python3 add_rules.py
+          ./sing-box/sing-box rule-set compile bbc.json
 
       - name: Commit and push SRS file
         run: |
@@ -43,7 +46,7 @@ jobs:
 
           # 检查文件是否变化，避免空提交
           if [ -n "$(git status --porcelain AWAvenue-Ads-Rule-Singbox.srs)" ]; then
-            git add AWAvenue-Ads-Rule-Singbox.srs
+            git add AWAvenue-Ads-Rule-Singbox.srs bbc.srs
             git commit -m "Auto update AWAvenue SRS $(date -u '+%Y-%m-%d %H:%M:%S')"
             git push
           else
