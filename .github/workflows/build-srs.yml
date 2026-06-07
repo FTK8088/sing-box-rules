@@ -39,14 +39,18 @@ jobs:
           python3 add_rules.py
           ./sing-box/sing-box rule-set compile --output bbc.srs bbc.json
 
+      - name: Compile direct.json to SRS
+        run: |
+          ./sing-box/sing-box rule-set compile --output direct.srs direct.json
+
       - name: Commit and push SRS files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           # 检查文件是否变化，避免空提交
-          if [ -n "$(git status --porcelain AWAvenue-Ads-Rule-Singbox.srs bbc.srs)" ]; then
-            git add AWAvenue-Ads-Rule-Singbox.srs bbc.srs
+          if [ -n "$(git status --porcelain AWAvenue-Ads-Rule-Singbox.srs bbc.srs direct.srs)" ]; then
+            git add AWAvenue-Ads-Rule-Singbox.srs bbc.srs direct.srs
             git commit -m "Auto update SRS files $(date -u '+%Y-%m-%d %H:%M:%S')"
             git push
           else
