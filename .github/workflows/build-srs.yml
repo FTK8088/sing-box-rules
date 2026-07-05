@@ -5,6 +5,11 @@ on:
     - cron: '0 0 * * *'   # 每天 UTC 0 点运行（北京时间早上 8 点）
   workflow_dispatch:       # 允许手动触发
 
+# 防止定时任务和手动任务同时推送，后启动的任务等待前一个任务完成。
+concurrency:
+  group: build-srs-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -43,16 +48,36 @@ jobs:
         run: |
           ./sing-box/sing-box rule-set compile --output direct.srs direct.json
 
-      - name: Commit and push SRS files
+      - name: Compile proxy_domain.json to SRS
+        run: |
+          ./sing-box/sing-box rule-set compile --output proxy_domain.srs proxy_domain.json
+
+      - name: Commit and push all SRS files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # 检查文件是否变化，避免空提交
-          if [ -n "$(git status --porcelain AWAvenue-Ads-Rule-Singbox.srs bbc.srs direct.srs)" ]; then
-            git add AWAvenue-Ads-Rule-Singbox.srs bbc.srs direct.srs
-            git commit -m "Auto update SRS files $(date -u '+%Y-%m-%d %H:%M:%S')"
-            git push
-          else
-            echo "No changes detected, skipping commit."
+          # 自动同步仓库根目录下所有编译产物，新增规则时无需再维护文件列表。
+          mapfile -d '' srs_files < <(find . -maxdepth 1 -type f -name '*.srs' -print0)
+          if [ "${#srs_files[@]}" -eq 0 ]; then
+            echo "No SRS files were generated."
+            exit 1
           fi
+
+          git add -f -- "${srs_files[@]}"
+
+          # 即使产物内容未变化，也记录本次编译和同步已经成功执行。
+          git commit --allow-empty -m "Auto sync SRS files $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+
+          # 若运行期间远端分支发生变化，先重放本次提交再推送，避免覆盖远端提交。
+          for attempt in 1 2 3; do
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
+            echo "Push attempt ${attempt} failed; retrying..."
+            sleep $((attempt * 2))
+          done
+
+          echo "Failed to push SRS files after 3 attempts."
+          exit 1
